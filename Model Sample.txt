@@ -1,0 +1,37 @@
+import csv
+
+valid = []
+flagged = []
+
+with open("registration.csv", "r") as file:
+    records = csv.DictReader(file)
+
+    for row in records:
+        name = row["Name"]
+        email = row["Email"]
+        age = int(row["Age"])
+
+        if email.strip() != "" and age >= 23:
+            valid.append(name)
+        else:
+            flagged.append(name)
+
+print("Total input:", len(valid) + len(flagged))
+print("Valid:", len(valid))
+print("Invalid:", len(flagged))
+print("Flagged:", len(flagged), flagged)
+print("Normal:", len(valid), valid)
+
+print("\nNotification")
+print("Subject: Training Centre: Registration validation notice")
+print("Message: The monitoring cycle identified these records.")
+print("Flagged count:", len(flagged))
+print("Flagged identifiers:", ", ".join(flagged))
+
+Registration.csv
+Name,Email,Age
+Anu,anu@test.local,20
+Bala,,22
+Charu,charu@test.local,22
+Devi,devi@test.local,25
+Ezhil,ezhil@test.local,21

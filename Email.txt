@@ -1,0 +1,47 @@
+from email.message import EmailMessage
+from pathlib import Path
+
+# Processing results
+total = 6
+valid = 5
+invalid = 1
+
+flagged = ["82-02", "82-04"]
+normal = ["82-01", "82-03", "82-05"]
+
+# Create email
+msg = EmailMessage()
+
+msg["From"] = "bpa.lab@example.com"
+msg["To"] = "examiner@example.com"
+msg["Subject"] = "BPA Automation - Processing Report"
+
+# Email content
+message = f"""
+AUTOMATION PROCESSING REPORT
+
+Total input: {total}
+Valid: {valid}
+Invalid: {invalid}
+
+Flagged: {len(flagged)} ({", ".join(flagged)})
+Normal: {len(normal)} ({", ".join(normal)})
+
+Processing completed.
+Please review the flagged records.
+"""
+
+msg.set_content(message)
+
+# Create Outbox folder
+Path("Outbox").mkdir(exist_ok=True)
+
+# Save email
+file_path = Path("Outbox") / "alert.eml"
+
+with open(file_path, "wb") as file:
+    file.write(msg.as_bytes())
+
+print("Email notification generated successfully.")
+print("Saved to:", file_path)
+

@@ -1,0 +1,304 @@
+PYTHON AUTOMATION PROGRAMS
+===========================
+
+1. AUTOMATING FILE MANAGEMENT
+
+import os
+import shutil
+
+source = "files"
+destination = "documents"
+
+os.makedirs(destination, exist_ok=True)
+
+for file in os.listdir(source):
+    source_path = os.path.join(source, file)
+
+    if os.path.isfile(source_path):
+        shutil.move(source_path, destination)
+
+print("Files moved successfully.")
+
+
+2. WEB SCRAPING AND CSV EXPORT
+
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+url = "https://example.com"
+
+response = requests.get(url)
+soup = BeautifulSoup(response.text, "html.parser")
+
+data = []
+
+for heading in soup.find_all("h2"):
+    data.append([heading.get_text(strip=True)])
+
+with open("data.csv", "w", newline="", encoding="utf-8") as file:
+    writer = csv.writer(file)
+    writer.writerow(["Heading"])
+    writer.writerows(data)
+
+print("Data saved to data.csv")
+
+
+3. AUTOMATED EMAIL SENDING
+
+import smtplib
+from email.message import EmailMessage
+
+sender = "your_email@gmail.com"
+password = "your_app_password"
+receiver = "receiver@gmail.com"
+
+message = EmailMessage()
+message["Subject"] = "Automated Email"
+message["From"] = sender
+message["To"] = receiver
+message.set_content("Hello! This email was sent automatically using Python.")
+
+with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    server.login(sender, password)
+    server.send_message(message)
+
+print("Email sent successfully.")
+
+
+4. READING PDF AND EXTRACTING DATA
+
+import PyPDF2
+
+with open("sample.pdf", "rb") as file:
+    reader = PyPDF2.PdfReader(file)
+
+    text = ""
+
+    for page in reader.pages:
+        text += page.extract_text()
+
+print(text)
+
+
+5. DESKTOP AUTOMATION USING PYAUTOGUI
+
+import pyautogui
+import time
+
+time.sleep(2)
+
+pyautogui.moveTo(500, 300, duration=1)
+pyautogui.click()
+
+pyautogui.write("Hello World", interval=0.1)
+
+pyautogui.press("enter")
+
+print("Desktop automation completed.")
+
+
+6. WEB FORM AUTOMATION WITH SELENIUM
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+
+driver = webdriver.Chrome()
+
+driver.get("https://www.google.com")
+
+search_box = driver.find_element(By.NAME, "q")
+search_box.send_keys("Python Automation")
+search_box.submit()
+
+time.sleep(3)
+
+driver.quit()
+
+print("Web automation completed.")
+
+
+7. HELLO WORLD, BOT AND VARIABLE HANDLING
+
+name = "Anish"
+age = 21
+
+print("Hello World!")
+
+print("Hello", name)
+print("Name:", name)
+print("Age:", age)
+
+user = input("Enter your name: ")
+
+print("Hello", user)
+print("Welcome to Python Automation!")
+
+
+8. WEB DATA SCRAPING TO EXCEL
+
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+url = "https://example.com"
+
+response = requests.get(url)
+soup = BeautifulSoup(response.text, "html.parser")
+
+data = []
+
+for heading in soup.find_all("h2"):
+    data.append({
+        "Heading": heading.get_text(strip=True)
+    })
+
+df = pd.DataFrame(data)
+df.to_excel("web_data.xlsx", index=False)
+
+print("Data saved to Excel.")
+
+
+9. EXCEL-BASED AUTOMATION
+
+import openpyxl
+
+workbook = openpyxl.Workbook()
+sheet = workbook.active
+
+sheet.title = "Students"
+
+sheet["A1"] = "Name"
+sheet["B1"] = "Mark"
+
+students = [
+    ["Anish", 90],
+    ["Arun", 85],
+    ["Rahul", 78]
+]
+
+for row in students:
+    sheet.append(row)
+
+workbook.save("students.xlsx")
+
+print("Excel file created successfully.")
+
+
+10. PDF INVOICE EXTRACTION
+
+import PyPDF2
+import re
+
+with open("invoice.pdf", "rb") as file:
+    reader = PyPDF2.PdfReader(file)
+
+    text = ""
+
+    for page in reader.pages:
+        text += page.extract_text()
+
+print("Invoice Data:")
+print(text)
+
+invoice = re.search(
+    r"Invoice\s*(?:No|Number)?\s*[:\-]?\s*(\w+)",
+    text,
+    re.I
+)
+
+if invoice:
+    print("Invoice Number:", invoice.group(1))
+
+amount = re.search(
+    r"(?:Total|Amount)\s*[:\-]?\s*₹?\s*([\d,]+(?:\.\d+)?)",
+    text,
+    re.I
+)
+
+if amount:
+    print("Total Amount:", amount.group(1))
+
+
+11. EMAIL AUTOMATION AND ATTACHMENT DOWNLOAD
+
+import imaplib
+import email
+
+EMAIL = "your_email@gmail.com"
+PASSWORD = "your_app_password"
+
+mail = imaplib.IMAP4_SSL("imap.gmail.com")
+mail.login(EMAIL, PASSWORD)
+
+mail.select("inbox")
+
+status, messages = mail.search(None, "ALL")
+email_ids = messages[0].split()
+
+for email_id in email_ids[-5:]:
+    status, data = mail.fetch(email_id, "(RFC822)")
+
+    message = email.message_from_bytes(data[0][1])
+
+    print("Subject:", message["Subject"])
+
+    for part in message.walk():
+
+        if part.get_content_disposition() == "attachment":
+
+            filename = part.get_filename()
+
+            if filename:
+                with open(filename, "wb") as file:
+                    file.write(part.get_payload(decode=True))
+
+                print("Downloaded:", filename)
+
+mail.logout()
+
+print("Attachment download completed.")
+
+
+12. EXCEPTION HANDLING AND LOGGING
+
+import logging
+
+logging.basicConfig(
+    filename="automation.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+try:
+    print("Automation started")
+
+    number = int(input("Enter a number: "))
+
+    result = 100 / number
+
+    print("Result:", result)
+
+    logging.info("Calculation completed successfully.")
+
+except ValueError:
+    print("Please enter a valid number.")
+    logging.error("Invalid number entered.")
+
+except ZeroDivisionError:
+    print("Cannot divide by zero.")
+    logging.error("Division by zero occurred.")
+
+except Exception as e:
+    print("Error:", e)
+    logging.exception("Unexpected error occurred.")
+
+finally:
+    print("Automation finished.")
+    logging.info("Automation finished.")
+
+
+REQUIRED PACKAGES
+
+pip install requests beautifulsoup4 selenium pyautogui PyPDF2 pandas openpyxl
