@@ -1,23 +1,74 @@
-PYTHON AUTOMATION PROGRAMS
-===========================
-
 1. AUTOMATING FILE MANAGEMENT
 
 import os
 import shutil
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
-source = "files"
-destination = "documents"
+BASE_FOLDER = os.path.dirname(os.path.abspath(__file__))
+SOURCE_FOLDER = os.path.join(BASE_FOLDER, "files")
+DESTINATION_FOLDER = os.path.join(BASE_FOLDER, "organized")
 
-os.makedirs(destination, exist_ok=True)
+class FileOrganizer(FileSystemEventHandler):
+    def on_created(self, event):
+        if event.is_directory:
+            return
+        self.organize_file(event.src_path)
 
-for file in os.listdir(source):
-    source_path = os.path.join(source, file)
+    def organize_file(self, file_path):
+        time.sleep(1)
+        if not os.path.isfile(file_path):
+            return
 
-    if os.path.isfile(source_path):
-        shutil.move(source_path, destination)
+        extension = os.path.splitext(file_path)[1].lower()
 
-print("Files moved successfully.")
+        if extension in [".jpg", ".jpeg", ".png", ".gif"]:
+            folder = "Images"
+        elif extension == ".pdf":
+            folder = "PDF"
+        elif extension in [".txt", ".doc", ".docx"]:
+            folder = "Documents"
+        elif extension in [".xlsx", ".xls", ".csv"]:
+            folder = "Spreadsheets"
+        elif extension in [".ppt", ".pptx"]:
+            folder = "Presentations"
+        else:
+            folder = "Others"
+
+        target_folder = os.path.join(DESTINATION_FOLDER, folder)
+        os.makedirs(target_folder, exist_ok=True)
+
+        filename = os.path.basename(file_path)
+        destination = os.path.join(target_folder, filename)
+
+        try:
+            shutil.move(file_path, destination)
+            print(f"Moved: {filename} -> {folder}")
+        except Exception as e:
+            print(f"Error moving {filename}: {e}")
+
+os.makedirs(SOURCE_FOLDER, exist_ok=True)
+os.makedirs(DESTINATION_FOLDER, exist_ok=True)
+
+event_handler = FileOrganizer()
+observer = Observer()
+observer.schedule(event_handler, SOURCE_FOLDER, recursive=False)
+observer.start()
+
+print("File Organizer is running...")
+print("Watching folder:", SOURCE_FOLDER)
+print("Drop new files into the 'files' folder.")
+print("Press Ctrl+C to stop.")
+
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    observer.stop()
+    print("File Organizer stopped.")
+
+observer.join()
 
 
 2. WEB SCRAPING AND CSV EXPORT
@@ -26,22 +77,29 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
-url = "https://example.com"
-
+url = "https://books.toscrape.com/"
 response = requests.get(url)
-soup = BeautifulSoup(response.text, "html.parser")
 
-data = []
+if response.status_code == 200:
+    soup = BeautifulSoup(response.text, "html.parser")
+    books = soup.find_all("article", class_="product_pod")
 
-for heading in soup.find_all("h2"):
-    data.append([heading.get_text(strip=True)])
+    with open("books.csv", "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Book Name", "Price", "Availability"])
 
-with open("data.csv", "w", newline="", encoding="utf-8") as file:
-    writer = csv.writer(file)
-    writer.writerow(["Heading"])
-    writer.writerows(data)
+        for book in books:
+            name = book.h3.a["title"]
+            price = book.find("p", class_="price_color").text.strip()
+            availability = book.find(
+                "p", class_="instock availability"
+            ).text.strip()
 
-print("Data saved to data.csv")
+            writer.writerow([name, price, availability])
+
+    print("Data successfully exported to books.csv")
+else:
+    print("Failed to access website")
 
 
 3. AUTOMATED EMAIL SENDING
@@ -49,36 +107,47 @@ print("Data saved to data.csv")
 import smtplib
 from email.message import EmailMessage
 
-sender = "your_email@gmail.com"
-password = "your_app_password"
-receiver = "receiver@gmail.com"
+sender_email = "your_email@gmail.com"
+sender_password = "your_app_password"
+receiver_email = "receiver@gmail.com"
 
 message = EmailMessage()
 message["Subject"] = "Automated Email"
-message["From"] = sender
-message["To"] = receiver
-message.set_content("Hello! This email was sent automatically using Python.")
+message["From"] = sender_email
+message["To"] = receiver_email
 
-with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-    server.login(sender, password)
-    server.send_message(message)
+message.set_content(
+    "Hello,\n\n"
+    "This email was sent automatically using Python.\n\n"
+    "Regards"
+)
 
-print("Email sent successfully.")
+try:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender_email, sender_password)
+        server.send_message(message)
+
+    print("Email sent successfully!")
+except Exception as e:
+    print("Error occurred:", e)
 
 
 4. READING PDF AND EXTRACTING DATA
 
-import PyPDF2
+from pypdf import PdfReader
 
-with open("sample.pdf", "rb") as file:
-    reader = PyPDF2.PdfReader(file)
+pdf_file = "sample.pdf"
+reader = PdfReader(pdf_file)
 
-    text = ""
+print("PDF read successfully!")
+print("\nExtracted Data:\n")
 
-    for page in reader.pages:
-        text += page.extract_text()
+for page in reader.pages:
+    text = page.extract_text()
+    if text:
+        print(text)
 
-print(text)
+print("\nData extraction completed!")
 
 
 5. DESKTOP AUTOMATION USING PYAUTOGUI
@@ -86,19 +155,31 @@ print(text)
 import pyautogui
 import time
 
-time.sleep(2)
+pyautogui.PAUSE = 1
 
-pyautogui.moveTo(500, 300, duration=1)
-pyautogui.click()
-
-pyautogui.write("Hello World", interval=0.1)
-
+pyautogui.hotkey("win", "r")
+pyautogui.write("notepad")
 pyautogui.press("enter")
 
-print("Desktop automation completed.")
+time.sleep(2)
+
+pyautogui.write(
+    "Hello! This is automated using Python and PyAutoGUI.",
+    interval=0.03
+)
+
+pyautogui.hotkey("ctrl", "s")
+time.sleep(2)
+
+pyautogui.write("automation.txt")
+pyautogui.press("enter")
+
+time.sleep(2)
+
+print("Desktop automation completed successfully!")
 
 
-6. WEB FORM AUTOMATION WITH SELENIUM
+6. WEB FORM AUTOMATION USING SELENIUM
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -106,34 +187,25 @@ import time
 
 driver = webdriver.Chrome()
 
-driver.get("https://www.google.com")
+driver.get("https://www.selenium.dev/selenium/web/web-form.html")
 
-search_box = driver.find_element(By.NAME, "q")
-search_box.send_keys("Python Automation")
-search_box.submit()
+driver.find_element(By.NAME, "my-text").send_keys("Ravi")
+driver.find_element(By.NAME, "my-password").send_keys("12345")
+driver.find_element(By.TAG_NAME, "button").click()
 
-time.sleep(3)
+time.sleep(2)
+
+print("Form submitted successfully!")
 
 driver.quit()
 
-print("Web automation completed.")
 
+7. HELLO WORLD BOT AND VARIABLE HANDLING
 
-7. HELLO WORLD, BOT AND VARIABLE HANDLING
-
-name = "Anish"
-age = 21
-
-print("Hello World!")
-
-print("Hello", name)
-print("Name:", name)
-print("Age:", age)
-
-user = input("Enter your name: ")
-
-print("Hello", user)
-print("Welcome to Python Automation!")
+"Student Name: " + studentName + Environment.NewLine +
+"Register Number: " + regNo + Environment.NewLine +
+"Department: " + department + Environment.NewLine +
+"College: " + college
 
 
 8. WEB DATA SCRAPING TO EXCEL
@@ -142,123 +214,214 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-url = "https://example.com"
+url = "https://www.w3schools.com/html/html_tables.asp"
 
-response = requests.get(url)
-soup = BeautifulSoup(response.text, "html.parser")
+headers = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/153.0.0.0 Safari/537.36"
+    )
+}
 
-data = []
+try:
+    response = requests.get(url, headers=headers, timeout=15)
+    print("Status Code:", response.status_code)
 
-for heading in soup.find_all("h2"):
-    data.append({
-        "Heading": heading.get_text(strip=True)
-    })
+    if response.status_code == 200:
+        print("Website accessed successfully!")
+        soup = BeautifulSoup(response.text, "html.parser")
+        table = soup.find("table")
 
-df = pd.DataFrame(data)
-df.to_excel("web_data.xlsx", index=False)
+        if table is not None:
+            headers_list = []
 
-print("Data saved to Excel.")
+            for th in table.find_all("th"):
+                headers_list.append(th.get_text(strip=True))
+
+            rows = []
+
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all("td")
+                row = []
+
+                for cell in cells:
+                    row.append(cell.get_text(strip=True))
+
+                if row:
+                    rows.append(row)
+
+            df = pd.DataFrame(rows, columns=headers_list)
+            print("\nScraped Data:")
+            print(df)
+
+            output_file = "scraped_data.xlsx"
+            df.to_excel(output_file, index=False)
+
+            print("\nData scraped successfully!")
+            print("Excel file created:", output_file)
+        else:
+            print("Table not found on the webpage.")
+    else:
+        print("Failed to access the website.")
+        print("Status Code:", response.status_code)
+
+except requests.exceptions.RequestException as e:
+    print("Error while accessing the website:")
+    print(e)
 
 
-9. EXCEL-BASED AUTOMATION
+9. EXCEL BASED AUTOMATION
 
-import openpyxl
+import pandas as pd
+import os
 
-workbook = openpyxl.Workbook()
-sheet = workbook.active
+input_file = "input_data.xlsx"
+output_file = "output_data.xlsx"
 
-sheet.title = "Students"
+if not os.path.exists(input_file):
+    data = {
+        "Name": ["Swathy", "Kasthuri", "Priya", "Anu"],
+        "Marks": [85, 72, 91, 68],
+        "Department": ["CSE", "IT", "CSE", "ECE"]
+    }
 
-sheet["A1"] = "Name"
-sheet["B1"] = "Mark"
+    df = pd.DataFrame(data)
+    df.to_excel(input_file, index=False)
 
-students = [
-    ["Anish", 90],
-    ["Arun", 85],
-    ["Rahul", 78]
-]
+df = pd.read_excel(input_file)
 
-for row in students:
-    sheet.append(row)
+df["Result"] = df["Marks"].apply(
+    lambda x: "Pass" if x >= 40 else "Fail"
+)
 
-workbook.save("students.xlsx")
+df["Grade"] = df["Marks"].apply(
+    lambda x: "A" if x >= 80 else
+              "B" if x >= 60 else
+              "C" if x >= 40 else
+              "F"
+)
 
-print("Excel file created successfully.")
+df.to_excel(output_file, index=False)
+
+print("Excel automation completed successfully!")
+print("Input file:", input_file)
+print("Output file:", output_file)
+print("\nProcessed Data:")
+print(df)
 
 
 10. PDF INVOICE EXTRACTION
 
-import PyPDF2
 import re
+import os
+import PyPDF2
+import pandas as pd
 
-with open("invoice.pdf", "rb") as file:
+pdf_file = "invoice.pdf"
+output_file = "invoice_details.xlsx"
+
+if not os.path.exists(pdf_file):
+    print("Invoice PDF not found.")
+    print("Please place invoice.pdf in the same folder as this program.")
+    exit()
+
+with open(pdf_file, "rb") as file:
     reader = PyPDF2.PdfReader(file)
-
     text = ""
 
     for page in reader.pages:
-        text += page.extract_text()
+        page_text = page.extract_text()
 
-print("Invoice Data:")
-print(text)
+        if page_text:
+            text += page_text + "\n"
 
-invoice = re.search(
-    r"Invoice\s*(?:No|Number)?\s*[:\-]?\s*(\w+)",
-    text,
-    re.I
+invoice_number = re.search(
+    r"Invoice\s*(?:No|Number|#)?\s*[:\-]?\s*([A-Za-z0-9\-]+)",
+    text, re.IGNORECASE
 )
 
-if invoice:
-    print("Invoice Number:", invoice.group(1))
-
-amount = re.search(
-    r"(?:Total|Amount)\s*[:\-]?\s*₹?\s*([\d,]+(?:\.\d+)?)",
-    text,
-    re.I
+invoice_date = re.search(
+    r"Date\s*[:\-]?\s*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})",
+    text, re.IGNORECASE
 )
 
-if amount:
-    print("Total Amount:", amount.group(1))
+customer_name = re.search(
+    r"(?:Customer|Bill To|Billed To)\s*[:\-]?\s*([A-Za-z ]+)",
+    text, re.IGNORECASE
+)
+
+total_amount = re.search(
+    r"(?:Total|Grand Total|Amount Due)\s*[:\-]?\s*(?:₹|\$|Rs\.?)?\s*([0-9,]+(?:\.[0-9]{2})?)",
+    text, re.IGNORECASE
+)
+
+invoice_number = invoice_number.group(1) if invoice_number else "Not Found"
+invoice_date = invoice_date.group(1) if invoice_date else "Not Found"
+customer_name = customer_name.group(1).strip() if customer_name else "Not Found"
+total_amount = total_amount.group(1) if total_amount else "Not Found"
+
+data = {
+    "Invoice Number": [invoice_number],
+    "Invoice Date": [invoice_date],
+    "Customer Name": [customer_name],
+    "Total Amount": [total_amount]
+}
+
+df = pd.DataFrame(data)
+df.to_excel(output_file, index=False)
+
+print("PDF invoice extraction completed successfully!")
+print("\nExtracted Details:")
+print(df)
+print("\nExcel file created:", output_file)
 
 
 11. EMAIL AUTOMATION AND ATTACHMENT DOWNLOAD
 
 import imaplib
 import email
+import os
 
 EMAIL = "your_email@gmail.com"
 PASSWORD = "your_app_password"
 
-mail = imaplib.IMAP4_SSL("imap.gmail.com")
-mail.login(EMAIL, PASSWORD)
+IMAP_SERVER = "imap.gmail.com"
+DOWNLOAD_FOLDER = "attachments"
 
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+mail = imaplib.IMAP4_SSL(IMAP_SERVER)
+mail.login(EMAIL, PASSWORD)
 mail.select("inbox")
 
 status, messages = mail.search(None, "ALL")
 email_ids = messages[0].split()
 
-for email_id in email_ids[-5:]:
+print("Emails found:", len(email_ids))
+
+for email_id in email_ids:
     status, data = mail.fetch(email_id, "(RFC822)")
+    raw_email = data[0][1]
+    msg = email.message_from_bytes(raw_email)
 
-    message = email.message_from_bytes(data[0][1])
+    print("\nSubject:", msg["Subject"])
+    print("From:", msg["From"])
 
-    print("Subject:", message["Subject"])
+    for part in msg.walk():
+        filename = part.get_filename()
 
-    for part in message.walk():
+        if filename:
+            filepath = os.path.join(DOWNLOAD_FOLDER, filename)
 
-        if part.get_content_disposition() == "attachment":
+            with open(filepath, "wb") as file:
+                file.write(part.get_payload(decode=True))
 
-            filename = part.get_filename()
-
-            if filename:
-                with open(filename, "wb") as file:
-                    file.write(part.get_payload(decode=True))
-
-                print("Downloaded:", filename)
+            print("Attachment downloaded:", filename)
 
 mail.logout()
 
-print("Attachment download completed.")
+print("\nEmail automation completed successfully!")
 
 
 12. EXCEPTION HANDLING AND LOGGING
@@ -266,39 +429,39 @@ print("Attachment download completed.")
 import logging
 
 logging.basicConfig(
-    filename="automation.log",
+    filename="application.log",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+logging.info("Program started")
+
 try:
-    print("Automation started")
+    print("Exception Handling and Logging")
 
-    number = int(input("Enter a number: "))
+    num1 = int(input("Enter first number: "))
+    num2 = int(input("Enter second number: "))
 
-    result = 100 / number
+    logging.info("Numbers entered successfully")
+
+    result = num1 / num2
 
     print("Result:", result)
 
-    logging.info("Calculation completed successfully.")
+    logging.info("Division completed successfully")
 
 except ValueError:
-    print("Please enter a valid number.")
-    logging.error("Invalid number entered.")
+    print("Error: Please enter valid numbers.")
+    logging.error("Invalid input entered.")
 
 except ZeroDivisionError:
-    print("Cannot divide by zero.")
-    logging.error("Division by zero occurred.")
+    print("Error: Cannot divide by zero.")
+    logging.error("Attempted division by zero.")
 
 except Exception as e:
-    print("Error:", e)
+    print("An unexpected error occurred:", e)
     logging.exception("Unexpected error occurred.")
 
 finally:
-    print("Automation finished.")
-    logging.info("Automation finished.")
-
-
-REQUIRED PACKAGES
-
-pip install requests beautifulsoup4 selenium pyautogui PyPDF2 pandas openpyxl
+    print("Program execution completed.")
+    logging.info("Program execution completed")
